@@ -1,0 +1,12 @@
+{
+  "name": "baobi-tracker",
+  "private": true,
+  "version": "1.0.0",
+  "description": "宝比健康成长中 - baby feeding/diaper/growth tracker (static site, no build step)",
+  "scripts": {
+    "test": "node tests/regression.test.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.45.0"
+  }
+}
