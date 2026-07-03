@@ -24,34 +24,38 @@ function flatSlice(data, m){
 }
 const PROV = {
   W: {
+    // 本站通道:依赖 Cloudflare Pages Functions 在 /api/:id 提供 KV 读写。
+    // 如果这个 Function 没有正确部署,这里会稳定收到 404(HTML 页面),自动跳到下一个通道。
     async create(){
       const id = Math.random().toString(36).slice(2,10);
       const r = await fetchT('/api/'+id, { method:'PUT',
         headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(loadAll()) });
-      if (!r.ok) throw 0;
+      if (!r.ok) throw new Error('本站通道 create http '+r.status);
       return 'W.'+id;
     },
     async pull(id){
       const r = await fetchT('/api/'+id);
       if (r.status===404) return null;
-      if (!r.ok) throw 0;
+      if (!r.ok) throw new Error('本站通道 pull http '+r.status);
       return (await r.json()) || {};
     },
     async push(id, data){
       const r = await fetchT('/api/'+id, { method:'PUT',
         headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(data) });
-      if (!r.ok) throw 0;
+      if (!r.ok) throw new Error('本站通道 push http '+r.status);
     },
-    async verify(id){ if (await this.pull(id) === null) throw 0; }
+    async verify(id){ if (await this.pull(id) === null) throw new Error('本站通道 verify: not found'); }
   },
   K: {
     async create(){
-      const r = await fetchT('https://kvdb.io', { method:'POST',
+      // 注意:必须带结尾斜杠 https://kvdb.io/ ,否则服务端会先 301 到带斜杠的地址,
+      // 而 fetch 对 POST 的重定向处理在部分浏览器/网络环境下会把请求体丢掉,导致创建失败。
+      const r = await fetchT('https://kvdb.io/', { method:'POST',
         headers:{ 'Content-Type':'application/x-www-form-urlencoded' },
         body:'email=baobi-app@example.com' });
-      if (!r.ok) throw 0;
+      if (!r.ok) throw new Error('kvdb create http '+r.status);
       const id = (await r.text()).trim();
-      if (!/^[A-Za-z0-9]{8,}$/.test(id)) throw 0;
+      if (!/^[A-Za-z0-9]{8,}$/.test(id)) throw new Error('kvdb create bad id: '+id.slice(0,40));
       return 'K.'+id;
     },
     async pull(id){
@@ -59,7 +63,7 @@ const PROV = {
       for (const m of syncMonths()){
         const r = await fetchT('https://kvdb.io/'+id+'/m'+m);
         if (r.status===404) continue;
-        if (!r.ok) throw 0;
+        if (!r.ok) throw new Error('kvdb pull http '+r.status);
         const txt = await r.text(); if (!txt) continue;
         let o; try { o = JSON.parse(txt) } catch(e){ continue }
         Object.assign(flat, o.days||{});
@@ -71,12 +75,12 @@ const PROV = {
       for (const m of syncMonths()){
         const r = await fetchT('https://kvdb.io/'+id+'/m'+m, { method:'PUT',
           body: JSON.stringify({ days:flatSlice(data,m), del:data._del||[] }) });
-        if (!r.ok) throw 0;
+        if (!r.ok) throw new Error('kvdb push http '+r.status);
       }
     },
     async verify(id){
       const r = await fetchT('https://kvdb.io/'+id+'/m'+syncMonths()[0]);
-      if (!r.ok && r.status!==404) throw 0;
+      if (!r.ok && r.status!==404) throw new Error('kvdb verify http '+r.status);
     }
   },
   J: {
@@ -85,45 +89,57 @@ const PROV = {
       const r = await fetchT(this.base, { method:'POST',
         headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
         body: JSON.stringify(loadAll()) });
+      // 浏览器跨域请求默认只能读到一小撮"安全"响应头,Location 不在其中,
+      // 除非 jsonblob.com 显式返回了 Access-Control-Expose-Headers: Location。
+      // 如果它没有配置这个,r.headers.get('Location') 在浏览器里永远是 null
+      // (用 curl/Postman 测试却能看到 Location,因为那些工具不受 CORS 限制)。
       const loc = r.headers.get('Location') || r.headers.get('location');
-      if (!r.ok || !loc) throw 0;
+      if (!r.ok) throw new Error('jsonblob create http '+r.status);
+      if (!loc) throw new Error('jsonblob create: Location 头读不到(很可能是 CORS 未暴露该响应头)');
       return 'J.'+loc.split('/').pop();
     },
     async pull(id){
       const r = await fetchT(this.base+'/'+id, { headers:{ 'Accept':'application/json' } });
-      if (!r.ok) throw 0;
+      if (!r.ok) throw new Error('jsonblob pull http '+r.status);
       return (await r.json()) || {};
     },
     async push(id, data){
       const r = await fetchT(this.base+'/'+id, { method:'PUT',
         headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(data) });
-      if (!r.ok) throw 0;
+      if (!r.ok) throw new Error('jsonblob push http '+r.status);
     },
     async verify(id){ await this.pull(id); }
   },
   E: {
+    // extendsclass.com 在 2026 年已经要求创建 bin 必须带 Api-key 请求头(需要注册免费账号获取),
+    // 匿名 POST 会稳定收到 401 "Wrong API key"。在申请到 key 并写死在这里之前,
+    // 这个通道不会被 createSync() 尝试(见下方 CHANNELS 列表),只保留读写方法用于兼容老的同步码。
     base:'https://json.extendsclass.com/bin',
+    apiKey: '', // 如果注册了免费账号,把 key 填在这里,并把 'E' 加回 CHANNELS 列表
     async create(){
+      if (!this.apiKey) throw new Error('extendsclass 未配置 Api-key,已跳过');
       const r = await fetchT(this.base, { method:'POST',
-        headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(loadAll()) });
-      if (!r.ok) throw 0;
+        headers:{ 'Content-Type':'application/json', 'Api-key':this.apiKey }, body: JSON.stringify(loadAll()) });
+      if (!r.ok) throw new Error('extendsclass create http '+r.status);
       const o = await r.json();
-      if (!o || !o.id) throw 0;
+      if (!o || !o.id) throw new Error('extendsclass create: 返回里没有 id');
       return 'E.'+o.id;
     },
     async pull(id){
       const r = await fetchT(this.base+'/'+id);
-      if (!r.ok) throw 0;
+      if (!r.ok) throw new Error('extendsclass pull http '+r.status);
       return (await r.json()) || {};
     },
     async push(id, data){
       const r = await fetchT(this.base+'/'+id, { method:'PUT',
         headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(data) });
-      if (!r.ok) throw 0;
+      if (!r.ok) throw new Error('extendsclass push http '+r.status);
     },
     async verify(id){ await this.pull(id); }
   }
 };
+// 依次尝试创建同步的通道顺序。E 通道因为需要 Api-key(见上)默认不参与尝试。
+const CHANNELS = ['W','K','J'];
 function parseCode(code){
   code = (code||'').trim();
   if (code[1]==='.' && PROV[code[0]]) return { prov:PROV[code[0]], id:code.slice(2) };
@@ -172,7 +188,8 @@ function renderSyncUI(){
 
 async function createSync(){
   const names = { W:'本站通道', K:'通道2', J:'通道3', E:'通道4' };
-  for (const p of ['W','K','J','E']) {
+  const errors = [];
+  for (const p of CHANNELS) {
     setSyncStatus('正在尝试'+names[p]+'...');
     try {
       const code = await PROV[p].create();
@@ -182,9 +199,14 @@ async function createSync(){
       renderSyncUI();
       setSyncStatus('已开启('+names[p]+'),把同步码发给家人吧');
       return;
-    } catch(e){}
+    } catch(e){
+      const msg = (e && e.message) || String(e);
+      errors.push(names[p]+': '+msg);
+      console.warn('[宝比同步] '+names[p]+'('+p+') 失败:', msg);
+    }
   }
-  setSyncStatus('三个通道都连不上。请确认:1.已连网 2.用Safari或系统浏览器打开(不要在微信内置窗口里) 然后重试;还不行请截图告诉开发者', true);
+  console.warn('[宝比同步] 全部通道失败汇总:\n'+errors.join('\n'));
+  setSyncStatus('全部'+CHANNELS.length+'个同步通道都连不上。请确认:1.已连网 2.用Safari或系统浏览器打开(不要在微信内置窗口里) 然后重试;还不行的话打开浏览器控制台(F12→Console)截图具体报错发给开发者', true);
 }
 async function joinSync(){
   const raw = document.getElementById('joinCode').value;
@@ -193,14 +215,17 @@ async function joinSync(){
   setSyncStatus('正在加入...');
   try {
     const remote = await pc.prov.pull(pc.id);
-    if (remote === null) throw 0;
+    if (remote === null) throw new Error('同步码对应的数据不存在(remote null)');
     const merged = mergeData(loadAll(), remote||{});
     saveAll(merged);
     setSyncCfg({ code: raw.trim() });
     await pc.prov.push(pc.id, merged);
     renderSyncUI(); masterRender();
     setSyncStatus('加入成功,数据已合并同步');
-  } catch(e){ setSyncStatus('加入失败:同步码不对或网络问题(别在微信内置窗口里操作,用浏览器打开)', true); }
+  } catch(e){
+    console.warn('[宝比同步] 加入失败:', (e && e.message) || e);
+    setSyncStatus('加入失败:同步码不对或网络问题(别在微信内置窗口里操作,用浏览器打开;可打开控制台 F12 看具体报错)', true);
+  }
 }
 let syncing = false;
 async function syncNow(manual){
@@ -216,7 +241,10 @@ async function syncNow(manual){
     await pc.prov.push(pc.id, merged);
     setSyncStatus('已同步 '+nowHM());
     masterRender();
-  } catch(e){ setSyncStatus('同步失败(网络问题),稍后自动重试', true); }
+  } catch(e){
+    console.warn('[宝比同步] 定时同步失败:', (e && e.message) || e);
+    setSyncStatus('同步失败(网络问题),稍后自动重试', true);
+  }
   syncing = false;
 }
 let syncTimer = null;
@@ -236,4 +264,3 @@ function leaveSync(){
     setSyncCfg(null); renderSyncUI();
   }
 }
-
