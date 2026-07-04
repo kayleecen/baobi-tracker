@@ -54,11 +54,11 @@
   .baby-card {
     position:absolute; left:2px; bottom:10px; z-index:3;
     background:rgba(255,251,245,.95); border:1px solid var(--line);
-    border-radius:18px; padding:11px 18px; text-align:left;
-    box-shadow:0 4px 12px rgba(107,91,78,.08); min-width:150px;
+    border-radius:26px; padding:18px 26px; text-align:left;
+    box-shadow:0 4px 12px rgba(107,91,78,.08); min-width:172px;
   }
-  .baby-card .bc-age { font-size:17px; font-weight:800; color:var(--rose-d); white-space:nowrap; }
-  .baby-card .bc-wh { font-size:12.5px; color:var(--sub); margin-top:3px; white-space:nowrap; }
+  .baby-card .bc-age { font-size:20px; font-weight:800; color:var(--rose-d); white-space:nowrap; }
+  .baby-card .bc-wh { font-size:12.5px; color:var(--sub); margin-top:9px; white-space:nowrap; }
   .scallop {
     height:14px; margin-top:6px;
     background-image: radial-gradient(circle at 7px 0, transparent 7px, var(--cream) 7.5px);
