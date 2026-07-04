@@ -215,6 +215,7 @@
   .seg button.on { background:var(--card); color:var(--rose-d); box-shadow:0 1px 3px rgba(0,0,0,.08); }
   canvas { width:100%; height:auto; }
   #reportText { white-space:pre-wrap; font-size:13px; line-height:1.9; color:var(--sub); }
+  #dailyText { white-space:pre-wrap; }
   textarea {
     width:100%; border:2px solid var(--line); border-radius:14px; background:var(--card);
     padding:10px; font-size:12px; font-family:inherit; color:var(--text); min-height:70px;
