@@ -16,9 +16,11 @@ function renderDayDetail(){
   document.getElementById('dPee').textContent = pee;
   document.getElementById('dPoo').textContent = poo;
 
+  // 按"记录时间"(recordMoment)排序,不是按保存/修改那一刻的 ts——
+  // 这样如果你把某条记录的时间改早/改晚了,它会挪到正确的位置,而不是停在你操作的那个先后顺序上。
   const items = [
-    ...data.feeds.map(f=>({ts:f.ts||0, at:f.at, kind:'feed', label:f.ml+' ml'})),
-    ...data.diapers.map(x=>({ts:x.ts||0, at:x.at, kind:x.type, label:x.type==='poo'?'粑粑':'尿尿'}))
+    ...data.feeds.map(f=>({ts:recordMoment(k,f.at), at:f.at, kind:'feed', label:f.ml+' ml'})),
+    ...data.diapers.map(x=>({ts:recordMoment(k,x.at), at:x.at, kind:x.type, label:x.type==='poo'?'粑粑':'尿尿'}))
   ].sort((a,b)=>b.ts-a.ts);
 
   const iconMap = {
@@ -30,5 +32,15 @@ function renderDayDetail(){
   list.innerHTML = items.length===0
     ? '<div class="empty">这一天还没有记录</div>'
     : items.map((it,idx)=>`<div class="row">${iconMap[it.kind]}<span class="t">${it.at}</span><span class="v">${it.label}</span>${idx===0?'<span class="latest-tag">最新</span>':''}</div>`).join('');
+}
+
+// ================= 昨日总结(只要总数,不要详情) =================
+function renderYesterdaySummary(){
+  const elMl = document.getElementById('yMl'), elPoo = document.getElementById('yPoo');
+  if (!elMl || !elPoo) return;
+  const y = new Date(); y.setDate(y.getDate()-1);
+  const data = getDay(dayKey(y));
+  elMl.textContent = data.feeds.reduce((s,f)=>s+f.ml,0);
+  elPoo.textContent = data.diapers.filter(x=>x.type==='poo').length;
 }
 

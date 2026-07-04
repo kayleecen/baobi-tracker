@@ -69,6 +69,17 @@ const PROV = {
         Object.assign(flat, o.days||{});
         flat._del.push(...(o.del||[]));
       }
+      // 宝宝档案(月龄/体重/身高)和家庭备注不是按月存的,单独存一个 key。
+      // 老的同步码可能还没有这个 key,404 是正常情况,不算失败。
+      try {
+        const r = await fetchT('https://kvdb.io/'+id+'/meta');
+        if (r.ok) {
+          const txt = await r.text();
+          if (txt) { const o = JSON.parse(txt); if (o.profile) flat._profile = o.profile; if (o.note) flat._note = o.note; }
+        } else if (r.status !== 404) {
+          console.warn('[宝比同步] kvdb meta pull http '+r.status);
+        }
+      } catch(e){ console.warn('[宝比同步] kvdb meta pull 失败:', (e&&e.message)||e); }
       return flat;
     },
     async push(id, data){
@@ -77,6 +88,9 @@ const PROV = {
           body: JSON.stringify({ days:flatSlice(data,m), del:data._del||[] }) });
         if (!r.ok) throw new Error('kvdb push http '+r.status);
       }
+      const rMeta = await fetchT('https://kvdb.io/'+id+'/meta', { method:'PUT',
+        body: JSON.stringify({ profile:data._profile||{}, note:data._note||{} }) });
+      if (!rMeta.ok) throw new Error('kvdb meta push http '+rMeta.status);
     },
     async verify(id){
       const r = await fetchT('https://kvdb.io/'+id+'/m'+syncMonths()[0]);
@@ -147,6 +161,28 @@ function parseCode(code){
   return null;
 }
 
+// 挑两份"带 updatedAt 的小对象"(宝宝档案/家庭备注)里更新的那一份,谁改得晚听谁的。
+function pickLatest(a, b){
+  if (!a) return b || null;
+  if (!b) return a;
+  return (b.updatedAt||0) > (a.updatedAt||0) ? b : a;
+}
+// 打包本机要同步出去的完整数据:喂奶/换片记录 + 宝宝档案 + 家庭备注。
+function syncPayload(){
+  const d = loadAll();
+  d._profile = loadProfile();
+  d._note = loadNote();
+  return d;
+}
+// 把合并后的数据落地到本机:档案和备注各自存回自己的 key,其余(喂奶/换片)存回主存储。
+function applyMerged(merged){
+  if (merged._profile) saveProfile(merged._profile);
+  if (merged._note) saveNoteLocal(merged._note);
+  const dayData = Object.assign({}, merged);
+  delete dayData._profile;
+  delete dayData._note;
+  saveAll(dayData);
+}
 function mergeData(a, b){
   const out = {};
   const del = new Set([...(a._del||[]), ...(b._del||[])]);
@@ -171,6 +207,8 @@ function mergeData(a, b){
     out[k] = { feeds, diapers };
   }
   out._del = [...del];
+  out._profile = pickLatest(a._profile, b._profile);
+  out._note = pickLatest(a._note, b._note);
   return out;
 }
 
@@ -194,7 +232,7 @@ async function createSync(){
     try {
       const code = await PROV[p].create();
       const { prov, id } = parseCode(code);
-      await prov.push(id, loadAll());
+      await prov.push(id, syncPayload());
       setSyncCfg({ code });
       renderSyncUI();
       setSyncStatus('已开启('+names[p]+'),把同步码发给家人吧');
@@ -216,11 +254,11 @@ async function joinSync(){
   try {
     const remote = await pc.prov.pull(pc.id);
     if (remote === null) throw new Error('同步码对应的数据不存在(remote null)');
-    const merged = mergeData(loadAll(), remote||{});
-    saveAll(merged);
+    const merged = mergeData(syncPayload(), remote||{});
+    applyMerged(merged);
     setSyncCfg({ code: raw.trim() });
     await pc.prov.push(pc.id, merged);
-    renderSyncUI(); masterRender();
+    renderSyncUI(); masterRender(); fillProfileInputs(); renderFamilyNote();
     setSyncStatus('加入成功,数据已合并同步');
   } catch(e){
     console.warn('[宝比同步] 加入失败:', (e && e.message) || e);
@@ -236,11 +274,11 @@ async function syncNow(manual){
   try {
     let remote = await pc.prov.pull(pc.id);
     if (remote === null) remote = {};
-    const merged = mergeData(loadAll(), remote||{});
-    saveAll(merged);
+    const merged = mergeData(syncPayload(), remote||{});
+    applyMerged(merged);
     await pc.prov.push(pc.id, merged);
     setSyncStatus('已同步 '+nowHM());
-    masterRender();
+    masterRender(); fillProfileInputs(); renderFamilyNote();
   } catch(e){
     console.warn('[宝比同步] 定时同步失败:', (e && e.message) || e);
     setSyncStatus('同步失败(网络问题),稍后自动重试', true);
@@ -264,3 +302,4 @@ function leaveSync(){
     setSyncCfg(null); renderSyncUI();
   }
 }
+

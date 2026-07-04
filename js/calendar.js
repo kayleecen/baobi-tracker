@@ -46,7 +46,7 @@ function renderCalendar(){
     if (isSel) cls.push('sel');
     return `<button class="${cls.join(' ')}" onclick="selectDay(${c.y},${c.m},${c.d})">
       <span class="d">${c.d}</span>
-      ${ml>0 ? `<span class="m"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 7h6l1 3.5V18a3 3 0 0 1-3 3h-2a3 3 0 0 1-3-3v-7.5z"/></svg>${ml}</span>` : ''}
+      ${ml>0 ? `<span class="m"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9.5" y="2" width="5" height="3" rx="1"/><path d="M8 8.5L9.5 5M16 8.5L14.5 5"/><rect x="8" y="8.5" width="8" height="12.5" rx="3"/><path d="M8 14h8"/></svg>${ml}</span>` : ''}
     </button>`;
   }).join('');
 }

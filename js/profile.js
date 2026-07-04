@@ -16,6 +16,7 @@ function saveBabyProfile(){
   if (b) p.birthday = b;
   if (w) p.weight = w;
   if (h) p.height = h;
+  p.updatedAt = Date.now();
   saveProfile(p);
   updateBabyCard();
   alert('已保存宝比档案');

@@ -19,12 +19,9 @@ function lastFeedTs(){
     for (const f of (all[k].feeds||[])) if (f.ts && f.ts > last) last = f.ts; }
   return last;
 }
-// 把"记录所在的那一天"+"记录上显示的时间(可能被手动改过)"合成一个真实的时间点,
-// 这样"距上次喂奶"是按你编辑后的时间算,而不是按当初点保存那一刻算的。
-function feedMoment(dayK, at){
-  const t = new Date(dayK+'T'+(at||'00:00')+':00');
-  return isNaN(t.getTime()) ? 0 : t.getTime();
-}
+// "距上次喂奶"按你编辑后的时间算,而不是按当初点保存那一刻算的。
+// (实际计算逻辑在 core.js 的 recordMoment 里,喂奶/换片列表排序也共用它)
+function feedMoment(dayK, at){ return recordMoment(dayK, at); }
 function lastFeedMoment(){
   const all = loadAll(); let last = 0;
   for (const k in all) { if (k.startsWith('_')) continue;

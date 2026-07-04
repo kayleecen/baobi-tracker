@@ -6,6 +6,8 @@ function masterRender(){
   renderCalendar();
   renderDayDetail();
   renderRecordLists();
+  renderYesterdaySummary();
+  renderFamilyNote();
 }
 
 

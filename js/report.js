@@ -121,9 +121,13 @@ function dailyReport(){
   const pee = rec.diapers.filter(x=>x.type==='pee').length;
   const poo = rec.diapers.filter(x=>x.type==='poo').length;
   const text = (rec.feeds.length || rec.diapers.length)
-    ? `${label} 宝比日报:奶量 ${ml} ml(${rec.feeds.length} 次,平均 ${Math.round(ml/Math.max(rec.feeds.length,1))} ml/次),尿尿 ${pee} 次,粑粑 ${poo} 次。`
-    : `${label} 没有记录。`;
+    ? `📋宝比日报-【${label}】:\n总奶量:${ml}ML - ${rec.feeds.length}顿奶🥛\n换片片:尿尿片- ${pee}次;粑粑片- ${poo}次`
+    : `📋宝比日报-【${label}】:\n还没有记录呢~`;
   return { date:d, k, ml, text };
+}
+// iCalendar 的 TEXT 字段里,反斜杠/逗号/分号/换行都要转义,不然日报文字里的换行会把 ics 文件格式弄坏。
+function icsEscape(s){
+  return String(s).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
 }
 function saveToCalendar(){
   const r = dailyReport();
@@ -135,7 +139,7 @@ function saveToCalendar(){
     'DTSTAMP:'+stamp,
     'DTSTART;VALUE=DATE:'+ymd,
     'SUMMARY:宝比日报 奶量'+r.ml+'ml',
-    'DESCRIPTION:'+r.text,
+    'DESCRIPTION:'+icsEscape(r.text),
     'END:VEVENT','END:VCALENDAR'
   ].join('\r\n');
   const a = document.createElement('a');

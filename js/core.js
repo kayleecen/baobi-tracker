@@ -29,6 +29,13 @@ function nowHM(){
 function dayTotalMl(k){
   return getDay(k).feeds.reduce((s,f)=>s+f.ml,0);
 }
+// 把"记录所在的那一天"+"记录上显示的时间(可能被手动改过)"合成一个真实的时间点。
+// 喂奶/换片列表排序、"最新"标签都用这个,而不是记录当初保存那一刻的 ts,
+// 这样编辑过时间的记录会按你填的时间排,而不是按你操作的先后顺序排。
+function recordMoment(dayK, at){
+  const t = new Date(dayK+'T'+(at||'00:00')+':00');
+  return isNaN(t.getTime()) ? 0 : t.getTime();
+}
 
 // ================= 全局状态 =================
 let calMonth = new Date(); calMonth.setDate(1);
