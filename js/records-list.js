@@ -21,7 +21,7 @@ function renderRecordLists(){
   dl.innerHTML = data.diapers.length===0 ? ''
     : diapersSorted.map(({d,i},idx)=>
       `<div class="row"><span class="t">${d.at}</span>
-       <span class="v" style="color:${d.type==='poo'?'var(--peach-d)':'var(--sky-d)'}">${d.type==='poo'?'粑粑':'尿尿'}</span>${idx===0?'<span class="latest-tag">最新</span>':''}
+       <span class="v" style="flex:1;display:flex;align-items:center"><img src="img/icons/${d.type==='poo'?'diaper-dirty':'diaper-wet'}.png" alt="${d.type==='poo'?'便便':'尿湿'}" style="width:26px;height:26px;object-fit:contain"></span>${idx===0?'<span class="latest-tag">最新</span>':''}
        <button class="edit-btn" onclick="editDiaper(${i})" aria-label="编辑">
          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
        </button></div>`).join('');
