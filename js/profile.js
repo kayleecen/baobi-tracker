@@ -43,13 +43,15 @@ function updateBabyCard(){
       days += prevMonthLastDay;
     }
     if (months < 0) { months = 0; days = Math.max(days,0); }
-    ageEl.textContent = `宝比 ${months}个月${days}天`;
+    ageEl.textContent = `${months}月${days}天`;
   } else {
-    ageEl.textContent = '宝比 --';
+    ageEl.textContent = '--';
   }
   const wTxt = p.weight ? `${p.weight}kg` : '--';
   const hTxt = p.height ? `${p.height}cm` : '--';
-  whEl.textContent = `体重 ${wTxt} · 身高 ${hTxt}`;
+  whEl.innerHTML =
+    `<span class="bc-wh-item"><img class="bc-wh-icon" src="img/icons/scale.png" alt="体重">${wTxt}</span>` +
+    `<span class="bc-wh-item"><img class="bc-wh-icon" src="img/icons/ruler.png" alt="身高">${hTxt}</span>`;
 }
 function updateHeader(){
   const n = new Date();
