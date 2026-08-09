@@ -185,11 +185,11 @@
   nav button.on .nb { background:var(--rose-t); }
 
   /* 弹窗 */
-  #overlay, #diaperOverlay {
+  #overlay, #diaperOverlay, #sleepOverlay {
     display:none; position:fixed; inset:0; background:rgba(107,91,78,.4);
     z-index:20; align-items:flex-end; justify-content:center;
   }
-  #overlay.show, #diaperOverlay.show { display:flex; }
+  #overlay.show, #diaperOverlay.show, #sleepOverlay.show { display:flex; }
   .sheet {
     background:var(--cream); width:100%; max-width:480px;
     border-radius:24px 24px 0 0; padding:22px 18px 34px;
