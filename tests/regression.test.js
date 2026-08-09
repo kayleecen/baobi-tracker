@@ -115,6 +115,36 @@ async function main() {
   diaperRows = await page.$$eval('#diaperList .row', rows => rows.map(r => r.textContent.trim()));
   eq('one diaper record remains after delete', diaperRows.length, 1);
 
+  // ---------- sleep records + editing a past day ----------
+  await page.evaluate(() => { openSleepSheet(); document.getElementById('sleepMinutesInput').value='80'; saveSleep(); });
+  const sleepRows = await page.$$eval('#sleepList .row', rows => rows.map(r => r.textContent.trim()));
+  ok('sleep record can be added with a duration', sleepRows[0].includes('80'));
+  await page.evaluate(() => {
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+    const k = dayKey(yesterday);
+    setDay(k, { feeds:[{ ml:120, at:'09:00', ts:12345 }], diapers:[{ type:'pee', at:'10:00', ts:12346 }], sleeps:[{ at:'11:00', minutes:45, ts:12347 }] });
+    selectDay(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+  });
+  await page.evaluate(() => {
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+    editFeed(0, dayKey(yesterday));
+  });
+  await page.evaluate(() => { document.getElementById('customMl').value='150'; saveFeed(); });
+  const historicalFeed = await page.evaluate(() => {
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+    return getDay(dayKey(yesterday)).feeds[0].ml;
+  });
+  eq('a feeding record from yesterday can be edited', historicalFeed, 150);
+  await page.evaluate(() => {
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+    editDiaper(0, dayKey(yesterday)); deleteDiaperFromSheet();
+  });
+  const historicalDiapers = await page.evaluate(() => {
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+    return getDay(dayKey(yesterday)).diapers.length;
+  });
+  eq('a diaper record from yesterday can be deleted', historicalDiapers, 0);
+
   // ---------- 5. home timeline: newest-first + single "最新" tag ----------
   await page.evaluate(() => go(0));
   await page.waitForTimeout(150);
