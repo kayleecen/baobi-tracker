@@ -116,9 +116,16 @@ async function main() {
   eq('one diaper record remains after delete', diaperRows.length, 1);
 
   // ---------- sleep records + editing a past day ----------
-  await page.evaluate(() => { openSleepSheet(); document.getElementById('sleepMinutesInput').value='80'; saveSleep(); });
+  await page.evaluate(() => { startSleep(); });
+  await page.evaluate(() => { const d=getDay(dayKey()); d.sleeps[0].endAt='01:20'; setDay(dayKey(), d); masterRender(); });
   const sleepRows = await page.$$eval('#sleepList .row', rows => rows.map(r => r.textContent.trim()));
-  ok('sleep record can be added with a duration', sleepRows[0].includes('80'));
+  ok('sleep record stores a start/end interval and shows its duration', sleepRows[0].includes('小时'));
+  await page.evaluate(() => { startSleep(); });
+  const sleepingRows = await page.$$eval('#sleepList .row', rows => rows.map(r => r.textContent.trim()));
+  ok('an unfinished sleep record shows as sleeping with an end button', sleepingRows[0].includes('睡眠中') && sleepingRows[0].includes('结束睡觉'));
+  await page.evaluate(() => document.querySelector('#sleepList .row button.btn-sage').click());
+  const completedSleep = await page.evaluate(() => getDay(dayKey()).sleeps.some(s => s.startAt && s.endAt));
+  ok('ending sleep automatically stores the end time', completedSleep);
   await page.evaluate(() => {
     const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
     const k = dayKey(yesterday);
