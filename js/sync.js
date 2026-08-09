@@ -205,7 +205,7 @@ function mergeData(a, b){
     }
     const sleeps=[], seenS=new Set();
     for (const s of [...sa,...sb]) {
-      const id = s.ts || (s.at+'|'+(s.minutes||0));
+      const id = s.ts || ((s.startAt || s.at)+'|'+(s.endAt || s.minutes || 0));
       if (seenS.has(id) || (s.ts && del.has(s.ts))) continue;
       seenS.add(id); sleeps.push(s);
     }
