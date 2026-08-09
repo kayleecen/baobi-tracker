@@ -7,17 +7,19 @@ function addDiaper(type){
 }
 let editingDiaperIndex = null;   // 正在编辑的记录在 diapers 数组里的真实下标
 let selDiaperType = null;
+let editingDiaperDayKey = null;
 function pickDiaperType(type){
   selDiaperType = type;
   document.getElementById('diaperTypePee').classList.toggle('sel', type==='pee');
   document.getElementById('diaperTypePoo').classList.toggle('sel', type==='poo');
 }
-function editDiaper(i){
-  const k = dayKey(), data = getDay(k);
+function editDiaper(i, recordDayKey){
+  const k = recordDayKey || dayKey(), data = getDay(k);
   const idx = i;   // i 就是记录在数组里的真实下标(渲染时已处理好显示顺序)
   const d = data.diapers[idx];
   if (!d) return;
   editingDiaperIndex = idx;
+  editingDiaperDayKey = k;
   pickDiaperType(d.type);
   document.getElementById('diaperTimeInput').value = d.at;
   document.getElementById('diaperOverlay').classList.add('show');
@@ -25,7 +27,7 @@ function editDiaper(i){
 function closeDiaperSheet(){ document.getElementById('diaperOverlay').classList.remove('show'); }
 function saveDiaper(){
   if (editingDiaperIndex === null) return;
-  const k = dayKey(), data = getDay(k);
+  const k = editingDiaperDayKey || dayKey(), data = getDay(k);
   const rec = data.diapers[editingDiaperIndex];
   if (!rec) { closeDiaperSheet(); return; }
   rec.type = selDiaperType || rec.type;
@@ -35,7 +37,7 @@ function saveDiaper(){
 }
 function deleteDiaperFromSheet(){
   if (editingDiaperIndex === null) return;
-  const k=dayKey(), data=getDay(k);
+  const k=editingDiaperDayKey || dayKey(), data=getDay(k);
   const removed = data.diapers.splice(editingDiaperIndex,1)[0];
   setDay(k,data); tombstone(removed); closeDiaperSheet(); masterRender(); scheduleSync();
 }
