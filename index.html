@@ -118,6 +118,12 @@
     </div>
     <div id="diaperList"></div>
   </div>
+
+  <div class="card">
+    <h2>😴 睡觉记录</h2>
+    <button class="btn btn-lilac" onclick="openSleepSheet()">记录睡觉</button>
+    <div id="sleepList"></div>
+  </div>
 </div>
 
 <!-- ============ 统计 ============ -->
@@ -259,11 +265,32 @@
   </div>
 </div>
 
+<!-- 睡觉记录弹窗 -->
+<div id="sleepOverlay" onclick="if(event.target===this)closeSleepSheet()">
+  <div class="sheet">
+    <h3 id="sleepSheetTitle">记录睡觉</h3>
+    <div class="custom">
+      <input type="time" id="sleepTimeInput" style="flex:1">
+      <span>开始时间</span>
+    </div>
+    <div class="custom">
+      <input type="number" min="0" id="sleepMinutesInput" placeholder="可选：睡了多少分钟" inputmode="numeric">
+      <span>分钟</span>
+    </div>
+    <div class="btns">
+      <button class="btn btn-gray" onclick="closeSleepSheet()">取消</button>
+      <button class="btn btn-sage" onclick="saveSleep()">保存 ✓</button>
+    </div>
+    <button class="btn btn-gray" id="sleepDeleteBtn" style="margin-top:8px;display:none;background:var(--rose-t);color:var(--rose-d)" onclick="deleteSleepFromSheet()">删除这条记录</button>
+  </div>
+</div>
+
 <script src="js/core.js"></script>
 <script src="js/profile.js"></script>
 <script src="js/note.js"></script>
 <script src="js/feed.js"></script>
 <script src="js/diaper.js"></script>
+<script src="js/sleep.js"></script>
 <script src="js/calendar.js"></script>
 <script src="js/home-timeline.js"></script>
 <script src="js/records-list.js"></script>
