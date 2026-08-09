@@ -67,9 +67,11 @@ function updateBanner(){
 
 // ================= 喂奶操作 =================
 let selMl = null;
+let editingFeedDayKey = null;
 let editingFeedIndex = null;   // 正在编辑的记录在 feeds 数组里的真实下标,null 表示新增
 function openSheet(){
   editingFeedIndex = null;
+  editingFeedDayKey = null;
   selMl = null;
   document.getElementById('sheetTitle').textContent = '宝比吃了多少奶?';
   document.getElementById('customMl').value = '';
@@ -78,12 +80,13 @@ function openSheet(){
   renderAmounts();
   document.getElementById('overlay').classList.add('show');
 }
-function editFeed(i){
-  const k = dayKey(), data = getDay(k);
+function editFeed(i, recordDayKey){
+  const k = recordDayKey || dayKey(), data = getDay(k);
   const idx = i;   // i 就是记录在数组里的真实下标(渲染时已处理好显示顺序)
   const f = data.feeds[idx];
   if (!f) return;
   editingFeedIndex = idx;
+  editingFeedDayKey = k;
   selMl = f.ml;
   document.getElementById('sheetTitle').textContent = '编辑喂奶记录';
   document.getElementById('customMl').value = learnedAmounts().includes(f.ml) ? '' : f.ml;
@@ -103,7 +106,7 @@ function saveFeed(){
   const ml = custom>0 ? custom : selMl;
   if (!ml) { alert('请选择或输入毫升数'); return; }
   const at = document.getElementById('feedTimeInput').value || nowHM();
-  const k = dayKey(), data = getDay(k);
+  const k = editingFeedDayKey || dayKey(), data = getDay(k);
   if (editingFeedIndex !== null && data.feeds[editingFeedIndex]) {
     data.feeds[editingFeedIndex].ml = ml;
     data.feeds[editingFeedIndex].at = at;
@@ -115,7 +118,7 @@ function saveFeed(){
 }
 function deleteFeedFromSheet(){
   if (editingFeedIndex === null) return;
-  const k=dayKey(), data=getDay(k);
+  const k=editingFeedDayKey || dayKey(), data=getDay(k);
   const removed = data.feeds.splice(editingFeedIndex,1)[0];
   setDay(k,data); tombstone(removed); closeSheet(); masterRender(); scheduleSync();
 }
