@@ -17,10 +17,13 @@ function dayKey(d){
 }
 function getDay(k){
   const all = loadAll();
-  return all[k] || { feeds:[], diapers:[] };
+  const day = all[k] || {};
+  return { feeds: day.feeds || [], diapers: day.diapers || [], sleeps: day.sleeps || [] };
 }
 function setDay(k, v){
-  const all = loadAll(); all[k]=v; saveAll(all);
+  const all = loadAll();
+  all[k] = { feeds: v.feeds || [], diapers: v.diapers || [], sleeps: v.sleeps || [] };
+  saveAll(all);
 }
 function nowHM(){
   const n=new Date();
