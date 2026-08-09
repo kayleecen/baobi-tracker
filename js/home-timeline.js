@@ -15,11 +15,11 @@ function renderDayDetail(){
   const items = [
     ...data.feeds.map((f, index) => ({ index, ts:recordMoment(k,f.at), tsCreated:f.ts, at:f.at, kind:'feed', label:`${f.ml} ml`, icon:'🍼' })),
     ...data.diapers.map((x, index) => ({ index, ts:recordMoment(k,x.at), tsCreated:x.ts, at:x.at, kind:x.type, label:x.type==='poo'?'粑粑':'尿尿', icon:x.type==='poo'?'💩':'💧' })),
-    ...data.sleeps.map((x, index) => ({ index, ts:recordMoment(k,x.at), tsCreated:x.ts, at:x.at, kind:'sleep', label:`睡觉${x.minutes ? ` · ${x.minutes} 分钟` : ''}`, icon:'😴' }))
+    ...data.sleeps.map((x, index) => ({ index, ts:recordMoment(k,sleepStartAt(x)), tsCreated:x.ts, at:sleepStartAt(x), kind:'sleep', label:sleepEndAt(x) ? `${sleepStartAt(x)} → ${sleepEndAt(x)} · ${sleepDurationText(x)}` : '睡眠中', icon:'😴', sleeping:!sleepEndAt(x) }))
   ].sort((a,b) => b.ts-a.ts || (b.tsCreated||0)-(a.tsCreated||0));
   const list = document.getElementById('dayList');
   list.innerHTML = items.length
-    ? items.map((it,index) => `<div class="row"><span class="ricon">${it.icon}</span><span class="t">${it.at}</span><span class="v">${it.label}</span>${index===0?'<span class="latest-tag">最新</span>':''}${editIcon(it.kind,it.index,k)}</div>`).join('')
+    ? items.map((it,index) => `<div class="row"><span class="ricon">${it.icon}</span><span class="t">${it.at}</span><span class="v">${it.label}</span>${it.sleeping?`<button class="btn btn-sage" onclick="finishSleep(${it.index}, '${k}')">结束睡觉</button>`:''}${index===0?'<span class="latest-tag">最新</span>':''}${editIcon(it.kind,it.index,k)}</div>`).join('')
     : '<div class="empty">这一天还没有记录</div>';
 }
 function renderYesterdaySummary(){
