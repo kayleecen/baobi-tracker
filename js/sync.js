@@ -190,6 +190,7 @@ function mergeData(a, b){
   for (const k of days) {
     const fa=(a[k]||{}).feeds||[], fb=(b[k]||{}).feeds||[];
     const da=(a[k]||{}).diapers||[], db=(b[k]||{}).diapers||[];
+    const sa=(a[k]||{}).sleeps||[], sb=(b[k]||{}).sleeps||[];
     const feeds=[], seenF=new Set();
     for (const f of [...fa,...fb]) {
       const id = f.ts || (f.at+'|'+f.ml);
@@ -202,9 +203,16 @@ function mergeData(a, b){
       if (seenD.has(id) || (d.ts && del.has(d.ts))) continue;
       seenD.add(id); diapers.push(d);
     }
+    const sleeps=[], seenS=new Set();
+    for (const s of [...sa,...sb]) {
+      const id = s.ts || (s.at+'|'+(s.minutes||0));
+      if (seenS.has(id) || (s.ts && del.has(s.ts))) continue;
+      seenS.add(id); sleeps.push(s);
+    }
     feeds.sort((x,y)=>(x.ts||0)-(y.ts||0));
     diapers.sort((x,y)=>(x.ts||0)-(y.ts||0));
-    out[k] = { feeds, diapers };
+    sleeps.sort((x,y)=>(x.ts||0)-(y.ts||0));
+    out[k] = { feeds, diapers, sleeps };
   }
   out._del = [...del];
   out._profile = pickLatest(a._profile, b._profile);
